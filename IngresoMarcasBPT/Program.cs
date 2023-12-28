@@ -15,6 +15,7 @@ foreach (string FECHA in ARREGLO_FECHAS)
     Console.WriteLine();
     Console.WriteLine();
 
+    metodos.LimpiaRegistrosManuales(FECHA);
     List<RegistrosEtruck> data = metodos.ObtieneRegistros(FECHA);
 
     foreach (RegistrosEtruck registro in data)

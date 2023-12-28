@@ -31,10 +31,6 @@ namespace IngresoMarcasBPT
 
         private DataTable DT = new DataTable();
 
-        //PRODUCTIVO
-        private static string PRODUCTIVO = @"Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST = 10.1.24.19)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=Maderas)));User Id=ctacweb;Password=ctac2012;Min Pool Size=10;Connection Lifetime=120;Connection Timeout=60;Incr Pool Size=5;Decr Pool Size=2";
-        //PRODUCTIVO_LECTURA
-        private static string PRODUCTIVO_LECTURA = @"Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST = 10.1.24.19)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=Maderas)));User Id=LECTURA_CEL;Password=LECTURA;Min Pool Size=10;Connection Lifetime=120;Connection Timeout=60;Incr Pool Size=5;Decr Pool Size=2";
 
         private static string QUERY_OBTIENE_REGISTROS = @"SELECT 
             rcp.recep_id,
@@ -72,11 +68,16 @@ namespace IngresoMarcasBPT
             TO_CHAR(RCP.FECHA_RECEP , 'DD-MM-YYYY') = '@FECHA@'
         ";
 
-        private const string QUERY_ACTUALIZA_PESOS = @"update ctac.ctac_recep a set
+        private const string QUERY_ACTUALIZA_PESOS = @"DELETE from ctac.ctac_registros where 
+            user_registro in ('REGISTRO_MANUAL_NETO', 'REGISTRO_MANUAL_TARA') and
+            to_char(hora, 'DD-MM-YYYY') = '@FECHA@'
+        ";
+        
+        private const string QUERY_LIMPIA_REGISTROS = @"update ctac.ctac_recep a set
             a.et_peso_tara = @TARA@,
             a.et_peso_bruto = @BRUTO@,
             a.et_peso_neto = @NETO@
-        where a.recep_id = @RECEP_ID@
+            where a.recep_id = @RECEP_ID@
         ";
 
         private const string QUERY_REGISTRO_ENTRADA = @"INSERT INTO ctac.ctac_registros 
@@ -176,9 +177,42 @@ namespace IngresoMarcasBPT
             return data;
         }
 
+        public void LimpiaRegistrosManuales(string FECHA)
+        {
+
+            string query = QUERY_LIMPIA_REGISTROS.Replace("@FECHA@", FECHA);
+
+            try
+            {
+
+                Console.WriteLine(query);
+                cmd = new OracleCommand();
+                cmd.Connection = connection;
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = query;
+
+                connection.Open();
+
+                cmd.ExecuteNonQuery();
+
+                connection.Close();
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error " + FECHA + ": " + e.Message);
+                //throw e;
+            }
+            finally
+            {
+                connection.Close();
+            }
+
+        }
+
+
         public void ActualizaPesos(RegistrosEtruck ITEM)
         {
-            List<RegistrosEtruck> data = new();
 
             string query = QUERY_ACTUALIZA_PESOS.Replace("@TARA@", ITEM.TARA).Replace("@BRUTO@", ITEM.BRUTO).Replace("@NETO@", ITEM.NETO).Replace("@RECEP_ID@", ITEM.RECEP_ID);
 
@@ -212,7 +246,6 @@ namespace IngresoMarcasBPT
 
         public void GeneraRegistroEntrada(RegistrosEtruck ITEM)
         {
-            List<RegistrosEtruck> data = new();
 
             string query = QUERY_REGISTRO_ENTRADA.Replace("@FECHA@", ITEM.FECHATARA).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
 
@@ -247,7 +280,6 @@ namespace IngresoMarcasBPT
 
         public void GeneraRegistroSalida(RegistrosEtruck ITEM)
         {
-            List<RegistrosEtruck> data = new();
 
             string query = QUERY_REGISTRO_SALIDA.Replace("@FECHA@", ITEM.FECHABRUTO).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
 
