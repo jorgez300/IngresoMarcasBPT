@@ -70,12 +70,12 @@ namespace IngresoMarcasBPT
             TO_CHAR(RCP.FECHA_RECEP , 'DD-MM-YYYY') = '@FECHA@'
         ";
 
-        private const string QUERY_ACTUALIZA_PESOS = @"DELETE from ctac.ctac_registros where 
+        private const string QUERY_LIMPIA_REGISTROS = @"DELETE from ctac.ctac_registros where 
             user_registro in ('REGISTRO_MANUAL_NETO', 'REGISTRO_MANUAL_TARA', 'REGISTRO_MANUAL_SALIDA') and
             to_char(hora, 'DD-MM-YYYY') = '@FECHA@'
         ";
-        
-        private const string QUERY_LIMPIA_REGISTROS = @"update ctac.ctac_recep a set
+
+        private const string QUERY_ACTUALIZA_PESOS = @"update ctac.ctac_recep a set
             a.et_peso_tara = @TARA@,
             a.et_peso_bruto = @BRUTO@,
             a.et_peso_neto = @NETO@
@@ -193,7 +193,8 @@ namespace IngresoMarcasBPT
             catch (Exception e)
             {
 
-                throw e;
+                Console.WriteLine("Error ObtieneRegistros " + FECHA + ": " + e.Message);
+                Console.ReadKey();
             }
             finally
             {
@@ -226,8 +227,8 @@ namespace IngresoMarcasBPT
             }
             catch (Exception e)
             {
-                Console.WriteLine("Error " + FECHA + ": " + e.Message);
-                //throw e;
+                Console.WriteLine("Error LimpiaRegistrosManuales " + FECHA + ": " + e.Message);
+                Console.ReadKey();
             }
             finally
             {
@@ -260,7 +261,7 @@ namespace IngresoMarcasBPT
             catch (Exception e)
             {
                 Console.WriteLine("Error ActualizaPesos " + ITEM.RECEP_ID + ": " + e.Message);
-                //throw e;
+                Console.ReadKey();
             }
             finally
             {
@@ -294,7 +295,7 @@ namespace IngresoMarcasBPT
             {
 
                 Console.WriteLine("Error GeneraRegistroTara " + ITEM.RECEP_ID + ": " + e.Message);
-                //throw e;
+                Console.ReadKey();
             }
             finally
             {
@@ -328,7 +329,7 @@ namespace IngresoMarcasBPT
             {
 
                 Console.WriteLine("Error GeneraRegistroNeto " + ITEM.RECEP_ID + ": " + e.Message);
-                //throw e;
+                Console.ReadKey();
             }
             finally
             {
@@ -362,7 +363,7 @@ namespace IngresoMarcasBPT
             {
 
                 Console.WriteLine("Error EliminaRegistroFP " + ITEM.RECEP_ID + ": " + e.Message);
-                //throw e;
+                Console.ReadKey();
             }
             finally
             {
@@ -375,7 +376,7 @@ namespace IngresoMarcasBPT
         {
             Random rnd = new Random();
 
-            int minutos = rnd.Next(15, 50);
+            int minutos = rnd.Next(15, 60);
 
             string query = QUERY_REGISTRO_SALIDA.Replace("@FECHA@", ITEM.FECHABRUTO).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE).Replace("@MINUTOS@", minutos.ToString());
 
@@ -399,7 +400,7 @@ namespace IngresoMarcasBPT
             {
 
                 Console.WriteLine("Error GeneraRegistroSalida " + ITEM.RECEP_ID + ": " + e.Message);
-                //throw e;
+                Console.ReadKey();
             }
             finally
             {

@@ -37,7 +37,6 @@ try
         Console.WriteLine();
         Console.WriteLine();
         Console.WriteLine();
-        Console.ReadKey();
 
     }
 
@@ -45,7 +44,6 @@ try
 }
 catch (Exception e)
 {
-
     Console.WriteLine(e.Message);
 }
 finally
