@@ -32,6 +32,8 @@ namespace IngresoMarcasBPT
         private DataTable DT = new DataTable();
 
 
+
+
         private static string QUERY_OBTIENE_REGISTROS = @"SELECT 
             rcp.recep_id,
             fecha_recep,
@@ -69,7 +71,7 @@ namespace IngresoMarcasBPT
         ";
 
         private const string QUERY_ACTUALIZA_PESOS = @"DELETE from ctac.ctac_registros where 
-            user_registro in ('REGISTRO_MANUAL_NETO', 'REGISTRO_MANUAL_TARA') and
+            user_registro in ('REGISTRO_MANUAL_NETO', 'REGISTRO_MANUAL_TARA', 'REGISTRO_MANUAL_SALIDA') and
             to_char(hora, 'DD-MM-YYYY') = '@FECHA@'
         ";
         
@@ -80,7 +82,7 @@ namespace IngresoMarcasBPT
             where a.recep_id = @RECEP_ID@
         ";
 
-        private const string QUERY_REGISTRO_ENTRADA = @"INSERT INTO ctac.ctac_registros 
+        private const string QUERY_REGISTRO_TARA = @"INSERT INTO ctac.ctac_registros 
             (
                 HORA,
                 RECEP_ID,
@@ -102,7 +104,7 @@ namespace IngresoMarcasBPT
             )
         ";
 
-        private const string QUERY_REGISTRO_SALIDA = @"INSERT INTO ctac.ctac_registros 
+        private const string QUERY_REGISTRO_NETO = @"INSERT INTO ctac.ctac_registros 
             (
                 HORA,
                 RECEP_ID,
@@ -120,6 +122,30 @@ namespace IngresoMarcasBPT
                 'CAMSAL',
                 '@PATENTE@',
                 'REGISTRO_MANUAL_NETO',
+                TO_DATE('@FECHA@', 'YYYY-MM-DD HH24:MI:SS')
+            )
+        ";
+
+        private const string QUERY_ELIMINA_REGISTRO_SALIDA = @"DELETE FROM CTAC.CTAC_REGISTROS WHERE RECEP_ID = @RECEP_ID@ AND punto_id_destino = 'FP'";
+
+        private const string QUERY_REGISTRO_SALIDA = @"INSERT INTO ctac.ctac_registros 
+            (
+                HORA,
+                RECEP_ID,
+                PUNTO_ID_ORIGEN,
+                PUNTO_ID_DESTINO,
+                PATENTE,
+                USER_REGISTRO,
+                FECHA_REGISTRO
+            ) 
+            VALUES
+            (
+                TO_DATE('@FECHA@', 'YYYY-MM-DD HH24:MI:SS')  + INTERVAL '@MINUTOS@' MINUTE,
+                @RECEP_ID@,
+                'CAMSAL',
+                'FP',
+                '@PATENTE@',
+                'REGISTRO_MANUAL_SALIDA',
                 TO_DATE('@FECHA@', 'YYYY-MM-DD HH24:MI:SS')
             )
         ";
@@ -210,7 +236,6 @@ namespace IngresoMarcasBPT
 
         }
 
-
         public void ActualizaPesos(RegistrosEtruck ITEM)
         {
 
@@ -234,7 +259,7 @@ namespace IngresoMarcasBPT
             }
             catch (Exception e)
             {
-                Console.WriteLine("Error " + ITEM.RECEP_ID + ": " + e.Message);
+                Console.WriteLine("Error ActualizaPesos " + ITEM.RECEP_ID + ": " + e.Message);
                 //throw e;
             }
             finally
@@ -244,10 +269,10 @@ namespace IngresoMarcasBPT
 
         }
 
-        public void GeneraRegistroEntrada(RegistrosEtruck ITEM)
+        public void GeneraRegistroTara(RegistrosEtruck ITEM)
         {
 
-            string query = QUERY_REGISTRO_ENTRADA.Replace("@FECHA@", ITEM.FECHATARA).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
+            string query = QUERY_REGISTRO_TARA.Replace("@FECHA@", ITEM.FECHATARA).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
 
             try
             {
@@ -268,7 +293,75 @@ namespace IngresoMarcasBPT
             catch (Exception e)
             {
 
-                Console.WriteLine("Error " + ITEM.RECEP_ID + ": " + e.Message);
+                Console.WriteLine("Error GeneraRegistroTara " + ITEM.RECEP_ID + ": " + e.Message);
+                //throw e;
+            }
+            finally
+            {
+                connection.Close();
+            }
+
+        }
+
+        public void GeneraRegistroNeto(RegistrosEtruck ITEM)
+        {
+
+            string query = QUERY_REGISTRO_NETO.Replace("@FECHA@", ITEM.FECHABRUTO).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
+
+            try
+            {
+
+                Console.WriteLine(query);
+                cmd = new OracleCommand();
+                cmd.Connection = connection;
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = query;
+
+                connection.Open();
+
+                cmd.ExecuteNonQuery();
+
+                connection.Close();
+
+            }
+            catch (Exception e)
+            {
+
+                Console.WriteLine("Error GeneraRegistroNeto " + ITEM.RECEP_ID + ": " + e.Message);
+                //throw e;
+            }
+            finally
+            {
+                connection.Close();
+            }
+
+        }
+
+        public void EliminaRegistroFP(RegistrosEtruck ITEM)
+        {
+
+            string query = QUERY_ELIMINA_REGISTRO_SALIDA.Replace("@RECEP_ID@", ITEM.RECEP_ID);
+
+            try
+            {
+
+                Console.WriteLine(query);
+                cmd = new OracleCommand();
+                cmd.Connection = connection;
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandText = query;
+
+                connection.Open();
+
+                cmd.ExecuteNonQuery();
+
+                connection.Close();
+
+            }
+            catch (Exception e)
+            {
+
+                Console.WriteLine("Error EliminaRegistroFP " + ITEM.RECEP_ID + ": " + e.Message);
                 //throw e;
             }
             finally
@@ -280,8 +373,11 @@ namespace IngresoMarcasBPT
 
         public void GeneraRegistroSalida(RegistrosEtruck ITEM)
         {
+            Random rnd = new Random();
 
-            string query = QUERY_REGISTRO_SALIDA.Replace("@FECHA@", ITEM.FECHABRUTO).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE);
+            int minutos = rnd.Next(15, 50);
+
+            string query = QUERY_REGISTRO_SALIDA.Replace("@FECHA@", ITEM.FECHABRUTO).Replace("@RECEP_ID@", ITEM.RECEP_ID).Replace("@PATENTE@", ITEM.PATENTE).Replace("@MINUTOS@", minutos.ToString());
 
             try
             {
@@ -302,7 +398,7 @@ namespace IngresoMarcasBPT
             catch (Exception e)
             {
 
-                Console.WriteLine("Error " + ITEM.RECEP_ID + ": " + e.Message);
+                Console.WriteLine("Error GeneraRegistroSalida " + ITEM.RECEP_ID + ": " + e.Message);
                 //throw e;
             }
             finally
@@ -311,9 +407,6 @@ namespace IngresoMarcasBPT
             }
 
         }
-
-
-
 
 
     }
